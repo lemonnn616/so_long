@@ -1,87 +1,199 @@
-# 🎮 so_long
+# so_long (MLX42)
 
-**so_long** is a small 2D game project developed as part of the 42 School curriculum. This project focuses on creating a simple game using a graphics library to practice event handling, rendering, and basic game logic.
+**so_long** is a small 2D tile-based game written in C as part of the 42 / Codam curriculum.  
+The goal is to load a `.ber` map, render it with textures, move the player on a grid, collect all collectibles, and exit the level.
 
----
-
-## 🛠️ Features
-
-### **Mandatory Part**
-- Implements a 2D game where the player navigates a character through a map to collect collectibles and reach an exit.
-- Key features:
-  - **Map Parsing**: Reads the game map from a `.ber` file.
-  - **Player Movement**: Allows the player to move in four directions using keyboard inputs.
-  - **Collectibles**: Requires the player to collect all items before reaching the exit.
-  - **Game Over Conditions**: Handles win and loss conditions.
-- Uses **MLX42** for rendering and event handling.
-
-### **Bonus Part**
-- **Enemy AI**: Adds enemies to the map that move and challenge the player.
-- **Animations**: Implements animations for the player and collectibles.
-- **Enhanced Map Features**:
-  - Support for larger maps with scrolling.
-  - Additional tile types for varied gameplay.
-- **HUD and Score Display**: Displays the player's score and remaining collectibles.
+This implementation uses **MLX42** (a modern MiniLibX alternative) and includes bonus-style features such as:
+- an **enemy tile** (`X`) that ends the game on contact,
+- **directional player sprites** (up/down/left/right),
+- a **step counter** displayed in the window.
 
 ---
 
-## 🎯 Objectives
+## 🎮 Gameplay
 
-- Learn to use a graphics library for rendering.
-- Develop an understanding of event handling and game loops.
-- Enhance problem-solving skills by parsing and validating game maps.
-- Practice memory management and error handling in a dynamic environment.
+### Objective
+- Collect **all** collectibles (`C`)
+- Then reach the exit (`E`) to win
 
----
-
-## 🚀 Usage
-
-### Compilation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/so_long.git
-   ```
-2. Compile the game:
-   ```bash
-   make
-   ```
-
-### Running the Game
-Run the program with the following syntax:
-```bash
-./so_long path/to/map.ber
-```
-Example:
-```bash
-./so_long maps/level1.ber
-```
+### Tiles
+- `1` — Wall (blocked)
+- `0` — Floor (walkable)
+- `P` — Player start (exactly one)
+- `C` — Collectible (at least one)
+- `E` — Exit (exactly one)
+- `X` — Enemy (instant game over on contact)
 
 ### Controls
-- **W/A/S/D**: Move the player up, left, down, and right.
-- **ESC**: Exit the game.
+- `W` — move up
+- `A` — move left
+- `S` — move down
+- `D` — move right
+- `ESC` — quit
+- Window close button — quit
 
 ---
 
-## 🗺️ Map Format
-- The map must be a `.ber` file containing the following elements:
-  - `1`: Wall
-  - `0`: Empty space
-  - `P`: Player start position
-  - `C`: Collectibles
-  - `E`: Exit
-- The map must be rectangular, surrounded by walls, and contain at least one player, one exit, and one collectible.
+## 📦 Build & Run
 
-Example:
-```
-111111
-1P0C01
-1000E1
-111111
-```
+### Requirements
+- C compiler (`cc`)
+- `cmake`
+- GLFW / OpenGL dependencies required by MLX42 (platform-dependent)
+
+### Build
+
+    make
+
+The Makefile will:
+1. Build `MLX42/` via CMake
+2. Build `libft/`
+3. Link everything into the final executable: `so_long`
+
+### Run
+
+    ./so_long maps/map.ber
 
 ---
 
-## 📜 License
+## 🗺️ Map format (`.ber`)
 
-This project is part of the 42 School curriculum. All rights reserved.
+Maps are plain text files made of characters listed above.
 
+Validation implemented in this project:
+- The map must be **rectangular**
+- The map must be surrounded by **walls** (`1`) on all borders
+- Must contain:
+  - exactly **one** player (`P`)
+  - exactly **one** exit (`E`)
+  - at least **one** collectible (`C`)
+
+> Note: This implementation validates structure and required elements.  
+> (Path solvability validation is not shown in the provided files.)
+
+---
+
+## 🧱 Project structure
+
+All game logic lives in `bonus/` (this repository builds the bonus-style version as `so_long`).
+
+### Entry point
+- `bonus/main_bonus.c`
+  - Checks arguments (`./so_long <map_file>`)
+  - Reads + validates the map
+  - Initializes MLX42 window
+  - Loads textures
+  - Renders the map and player
+  - Hooks keyboard & close events
+  - Frees resources on exit
+
+### Map reading & parsing
+- `bonus/read_map_bonus.c`, `bonus/read_map_bonus_2.c`
+  - Reads the entire file into memory
+  - Splits it into lines
+  - Builds `t_map_data` with `map`, `width`, `height`
+
+### Map validation
+- `bonus/valid_map.c`
+  - `check_walls` — borders must be `1`
+  - `check_player_and_exit` — exactly one `P` and one `E`
+  - `check_collectibles` — at least one `C`
+  - `check_rectangular` — all lines must have equal length
+
+### Rendering
+- `bonus/render_map_bonus.c`
+  - Draws the tilemap (walls/floor/collectibles/exit/enemy)
+  - Draws the player sprite depending on last move direction
+  - Renders the step counter overlay
+
+### Input & movement
+- `bonus/key_pressed_bonus.c`
+  - Tracks key press/release states
+  - `ESC` or window close -> quit
+
+- `bonus/move_player_bonus.c`
+  - Computes next position
+  - Checks collisions:
+    - wall -> blocked
+    - collectible -> collected
+    - enemy -> game over
+  - Updates steps and redraws
+  - Checks win condition (standing on `E` with 0 collectibles left)
+
+### Textures
+- `bonus/load_textures_bonus.c`, `bonus/load_textures_bonus_2.c`
+  Loads PNG textures from `textures/`:
+  - wall, floor, collectible, exit, enemy
+  - player sprites (up/down/left/right)
+
+- `bonus/free_textures_bonus.c`, `bonus/free_textures_bonus_2.c`
+  Properly frees MLX42 textures on exit.
+
+### Helpers / utilities
+- `bonus/utils_bonus.c`
+  - `print_error` — prints message and exits
+  - `check_collision` — handles walls/collectibles/enemy
+  - `update_steps_display` — updates the "Steps: N" overlay
+
+- `bonus/ft_utils.c`
+  Small string helpers used in file reading/parsing.
+
+---
+
+## ⚙️ How it works (high-level)
+
+1. **Load map**
+   - Read `.ber` into a string buffer
+   - Split into lines -> `char **map`
+
+2. **Validate map**
+   - Rectangular shape
+   - Wall borders
+   - Exactly 1 player and 1 exit
+   - At least 1 collectible
+
+3. **Initialize game**
+   - Create MLX42 window
+   - Load PNG textures
+   - Count collectibles and find player start position
+
+4. **Render**
+   - Draw each tile as an image
+   - Draw player sprite based on last direction
+   - Update on-screen step text after each move
+
+5. **Game loop**
+   - WASD moves the player
+   - `C` decreases collectible count
+   - `X` ends the game immediately
+   - `E` ends the game only after collecting all `C`
+
+---
+
+## ▶️ Example maps
+
+### Basic
+
+    111111
+    1P0C01
+    100001
+    1C0E01
+    111111
+
+### With enemy (`X`)
+
+    111111
+    1P0C01
+    100001
+    1CXE01
+    111111
+
+---
+
+## 🧠 What I learned
+
+- Working with a lightweight graphics framework (MLX42)
+- Parsing and validating a grid-based map format
+- Managing resources (textures, images, memory) safely
+- Implementing basic game loop logic (movement, collisions, win/lose states)
+- Designing a simple but structured project architecture in C
